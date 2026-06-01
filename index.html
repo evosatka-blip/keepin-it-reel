@@ -130,7 +130,7 @@
     }
     table {
       width: 100%;
-      min-width: 620px;
+      min-width: 590px;
       border-collapse: collapse;
       table-layout: fixed;
       font-size: 14px;
@@ -144,8 +144,8 @@
       letter-spacing: .04em;
       padding: 10px;
     }
-    th:first-child, td:first-child { text-align: left; width: 40%; }
-    th:not(:first-child), td:not(:first-child) { width: 15%; text-align: center; }
+    th:first-child, td:first-child { text-align: left; width: 28%; }
+    th:not(:first-child), td:not(:first-child) { width: 18%; text-align: center; }
     td {
       border-top: 1px solid var(--soft-border);
       padding: 10px;
@@ -241,9 +241,9 @@
       background: var(--warm-white);
     }
     .grocery-row {
-      min-width: 980px;
+      min-width: 610px;
       display: grid;
-      grid-template-columns: 44px 1.2fr .65fr .9fr .85fr .75fr 44px;
+      grid-template-columns: 30px .50fr 1.05fr .34fr .48fr .36fr;
       gap: 8px;
       align-items: center;
       padding: 10px 12px;
@@ -333,6 +333,53 @@
       gap: 10px;
       margin-top: 16px;
     }
+
+    .page-ribbon {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin: 18px 0 20px;
+      background: #E7DED3;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 8px;
+    }
+    .page-tab {
+      border: 0;
+      border-radius: 13px;
+      background: transparent;
+      color: #24596B;
+      font-weight: 800;
+      padding: 10px 6px;
+      min-height: 42px;
+    }
+    .page-tab.active {
+      background: var(--ocean);
+      color: white;
+      box-shadow: 0 4px 12px rgba(47, 111, 135, .22);
+    }
+    .mini-action {
+      width: 24px;
+      height: 24px;
+      min-height: 24px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--warm-white);
+      color: #24596B;
+      display: inline-grid;
+      place-items: center;
+      padding: 0;
+      line-height: 1;
+      font-weight: 900;
+    }
+    .mini-action.add { background: var(--sea-glass); }
+    .mini-action.remove { background: var(--warm-white); }
+    .mini-action:hover { background: var(--sea-glass); }
+    .split-head { line-height: 1.05; white-space: normal; }
+    .claim-btn { border: 0; cursor: pointer; }
+    .family-page-card { max-width: 420px; }
+    .grocery-row > :first-child { text-align: center; justify-self: center; }
+
     .reset {
       font-size: 12px;
       color: var(--muted);
@@ -365,8 +412,8 @@
     }
     .grocery-row {
       font-size: 13px;
-      min-width: 620px;
-      grid-template-columns: 30px 1.15fr .40fr .58fr .50fr .42fr 30px;
+      min-width: 590px;
+      grid-template-columns: 30px .48fr 1.05fr .32fr .44fr .34fr;
       gap: 6px;
       padding: 8px 10px;
     }
@@ -397,8 +444,8 @@
         padding: 6px 4px;
       }
       .grocery-row {
-        min-width: 560px;
-        grid-template-columns: 28px 1.1fr .35fr .55fr .48fr .40fr 28px;
+        min-width: 540px;
+        grid-template-columns: 28px .46fr 1fr .30fr .40fr .32fr;
         font-size: 12px;
         gap: 5px;
         padding: 7px 8px;
@@ -498,8 +545,8 @@
         gap: 8px;
       }
       .grocery-row {
-        min-width: 860px;
-        grid-template-columns: 28px 1.15fr .35fr .55fr .48fr .40fr 28px;
+        min-width: 590px;
+        grid-template-columns: 28px .46fr 1fr .30fr .40fr .32fr;
         padding: 10px;
       }
       .grocery-head {
@@ -543,8 +590,8 @@
       .summary-wrap table { min-width: 510px !important; font-size: 11px !important; }
       .summary-wrap th, .summary-wrap td { padding: 6px 4px !important; }
       .grocery-row {
-        min-width: 560px !important;
-        grid-template-columns: 34px 1.1fr .45fr .72fr .66fr .58fr 34px !important;
+        min-width: 540px !important;
+        grid-template-columns: 28px .46fr 1fr .30fr .40fr .32fr !important;
         font-size: 12px !important;
         gap: 5px !important;
         padding: 7px 8px !important;
@@ -639,7 +686,7 @@
       try {
         const raw = localStorage.getItem(key);
         return raw ? JSON.parse(raw) : fallback;
-      } catch {
+      } catch (error) {
         return fallback;
       }
     }
@@ -657,7 +704,8 @@
       categoryFilter: "Category",
       familyFilter: "Family",
       storeFilter: "Store/Home",
-      query: ""
+      query: "",
+      activePage: "Summary"
     };
 
     function save() {
@@ -675,12 +723,17 @@
     function escapeHtml(str) {
       return String(str ?? "").replace(/[&<>"']/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[m]));
     }
+    function setActivePage(page) {
+      state.activePage = page;
+      render();
+    }
+
     function setField(path, value) {
       const active = document.activeElement;
-      const focusId = active?.dataset?.focusId;
-      const selectionStart = typeof active?.selectionStart === "number" ? active.selectionStart : null;
-      const selectionEnd = typeof active?.selectionEnd === "number" ? active.selectionEnd : null;
-      const scrollY = window.scrollY;
+      const focusId = active && active.dataset ? active.dataset.focusId : null;
+      const selectionStart = active && typeof active.selectionStart === "number" ? active.selectionStart : null;
+      const selectionEnd = active && typeof active.selectionEnd === "number" ? active.selectionEnd : null;
+      const scrollY = window.pageYOffset || document.documentElement.scrollTop || 0;
 
       const parts = path.split(".");
       let ref = state;
@@ -800,6 +853,52 @@
       }
       save(); render();
     }
+
+    function toggleClaim(id) {
+      const item = state.items.find(i => i.id === id);
+      if (!item) return;
+      if (item.assignedTo) {
+        unclaim(id);
+        return;
+      }
+      if (!state.familyName) {
+        alert("Please select a family first.");
+        return;
+      }
+      state.items = state.items.map(i => i.id === id ? {...i, assignedTo: state.familyName} : i);
+      save(); render();
+    }
+
+    function openRemoveItemWarning(id) {
+      const item = state.items.find(i => i.id === id);
+      if (!item) return;
+      const modal = document.getElementById("modal");
+      const title = document.getElementById("modal-title");
+      const subtitle = document.getElementById("modal-subtitle");
+      const list = document.getElementById("modal-items");
+      const confirm = document.getElementById("modal-confirm");
+
+      title.textContent = "Remove item?";
+      subtitle.innerHTML = "This will permanently remove this item from the grocery list.";
+      list.innerHTML = `<div class="modal-item"><strong>${escapeHtml(item.name)}</strong><div class="subtle">${escapeHtml(item.quantity || "No quantity")} · ${escapeHtml(item.category)}</div></div>`;
+      confirm.textContent = "Remove item";
+      confirm.onclick = () => removeItem(id);
+      modal.classList.add("open");
+    }
+
+    function removeItem(id) {
+      const item = state.items.find(i => i.id === id);
+      if (!item) return;
+      const tripId = item.storeTripId;
+      state.items = state.items.filter(i => i.id !== id);
+      state.selected = state.selected.filter(x => x !== id);
+      state.groupSelected = state.groupSelected.filter(x => x !== id);
+      if (tripId && !state.items.some(i => i.storeTripId === tripId)) {
+        state.storeTrips = state.storeTrips.filter(t => t.id !== tripId);
+      }
+      closeModal();
+      save(); render();
+    }
     function ungroupItem(id) {
       const item = state.items.find(i => i.id === id);
       if (!item || !item.storeTripId) return;
@@ -840,21 +939,14 @@
           <div>
             <div class="eyebrow">〰️ Vacation house grocery coordinator</div>
             <h1>🎣 Keepin' It Reel - Grocery List</h1>
-            <ul class="instructions">
-              <li>Select a family</li>
-              <li>Claim items on grocery list</li>
-              <li>Group claimed items as brought from home or purchased from store with total or estimated value</li>
-            </ul>
-          </div>
-          <div class="card family-card">
-            <select onchange="setField('familyName', this.value)">
-              <option value="">Select family</option>
-              ${families.map(f => `<option ${state.familyName === f ? "selected" : ""}>${f}</option>`).join("")}
-            </select>
-            <button class="reset" onclick="resetData()">Reset all data</button>
           </div>
         </header>
 
+        <nav class="page-ribbon" aria-label="Dashboard sections">
+          ${["Summary", "Family", "Your List", "Full List"].map(page => `<button class="page-tab ${state.activePage === page ? "active" : ""}" onclick="setActivePage('${page}')">${page}</button>`).join("")}
+        </nav>
+
+        ${state.activePage === "Summary" ? `
         <section class="card">
           <div class="card-content">
             <h2>👥 Summary</h2>
@@ -873,15 +965,30 @@
             </div>
           </div>
         </section>
+        ` : ""}
 
+        ${state.activePage === "Family" ? `
+        <section class="card family-page-card">
+          <div class="card-content">
+            <h2>Family</h2>
+            <p class="subtle">Select the family you are claiming or grouping items for.</p>
+            <select style="margin-top:12px;" onchange="setField('familyName', this.value)">
+              <option value="">Select family</option>
+              ${families.map(f => `<option ${state.familyName === f ? "selected" : ""}>${f}</option>`).join("")}
+            </select>
+            <button class="reset" onclick="resetData()">Reset all data</button>
+          </div>
+        </section>
+        ` : ""}
+
+        ${state.activePage === "Your List" ? `
         <section class="card">
           <div class="card-content">
             <div class="section-title-row">
               <div>
-                <h2>🏪 From home / Store trips</h2>
+                <h2>🏪 Group and value grocery items</h2>
                 <div class="subtle">Group claimed items that will be brought from home or purchased from a store, then record the total or estimated value for that group.</div>
               </div>
-              <button class="btn sticky-action" ${!state.familyName || groupCount === 0 || !state.storeTotal.trim() ? "disabled" : ""} onclick="openModal('store')">Complete home / store group</button>
             </div>
 
             ${state.familyName ? `
@@ -896,6 +1003,7 @@
                 <div>
                   <input data-focus-id="store-total" placeholder="Total value" inputmode="decimal" value="${escapeHtml(state.storeTotal)}" oninput="setField('storeTotal', this.value)" />
                   ${state.claimStore === "Other" ? `<input data-focus-id="custom-store" style="margin-top:8px;" placeholder="Store name" value="${escapeHtml(state.customStore)}" oninput="setField('customStore', this.value)" />` : ""}
+                  <button class="btn" style="width:100%;margin-top:8px;" ${!state.familyName || groupCount === 0 || !state.storeTotal.trim() ? "disabled" : ""} onclick="openModal('store')">Group &amp; Value</button>
                 </div>
               </div>
             ` : `<p class="subtle">Select a family to group claimed items.</p>`}
@@ -922,11 +1030,13 @@
           </div>
         </section>
 
+        ` : ""}
+
+        ${state.activePage === "Full List" ? `
         <section class="card">
           <div class="card-content">
             <div class="section-title-row">
               <h2>Grocery list</h2>
-              <button class="btn sticky-action" ${!state.familyName || selectedCount === 0 ? "disabled" : ""} onclick="openModal('assign')">Claim ${selectedCount || "selected"} item${selectedCount === 1 ? "" : "s"}</button>
             </div>
             <div class="filters">
               <input data-focus-id="grocery-search" placeholder="Search items, families, stores, categories..." value="${escapeHtml(state.query)}" oninput="setField('query', this.value)" />
@@ -936,34 +1046,33 @@
             </div>
             <div class="mobile-hint">Swipe sideways to view and edit the full grocery list.</div>
             <div class="table-wrap">
-              <div class="grocery-row grocery-head"><div></div><div>Item</div><div>Qty</div><div>Category</div><div>Status / Family</div><div>Store / Home</div><div></div></div>
+              <div class="grocery-row grocery-head"><div>+</div><div class="split-head">Status<br>Family</div><div>Item</div><div>Qty</div><div>Category</div><div class="split-head">Store<br>Home</div></div>
               <div class="grocery-row add-row">
-                <div style="text-align:center;color:#24596B;">＋</div>
+                <button class="mini-action add" onclick="addItem()" title="Add item">＋</button>
+                <div class="subtle">—</div>
                 <input data-focus-id="new-item-name" placeholder="Add item" value="${escapeHtml(state.newItem.name)}" oninput="setField('newItem.name', this.value)" />
                 <input data-focus-id="new-item-qty" placeholder="Qty" value="${escapeHtml(state.newItem.quantity)}" oninput="setField('newItem.quantity', this.value)" />
                 <select onchange="setField('newItem.category', this.value)">${optionList(categories, state.newItem.category)}</select>
-                <div class="subtle">Unclaimed</div>
                 <div class="subtle">—</div>
-                <button class="btn" onclick="addItem()">＋</button>
               </div>
               ${filteredItems().map(item => {
                 const claimed = Boolean(item.assignedTo);
                 const selected = state.selected.includes(item.id);
                 return `
                   <div class="grocery-row ${claimed ? "claimed-row" : "unclaimed-row"}">
-                    <button class="check-btn ${selected ? "selected" : ""}" ${claimed ? "disabled" : ""} onclick="toggleSelected('${item.id}')">${selected ? "✓" : "○"}</button>
+                    <button class="mini-action remove" onclick="openRemoveItemWarning('${item.id}')" title="Remove item">−</button>
+                    <div>${claimed ? `<button class="badge claim-btn ${familyBadge(item.assignedTo)}" onclick="toggleClaim('${item.id}')" title="Click to unclaim">${escapeHtml(item.assignedTo)}</button>` : `<button class="badge claim-btn badge-unclaimed" onclick="toggleClaim('${item.id}')" title="Claim this item">Claim</button>`}</div>
                     <strong>${escapeHtml(item.name)}</strong>
                     <input value="${escapeHtml(item.quantity)}" placeholder="—" oninput="updateQty('${item.id}', this.value)" />
                     <div>${escapeHtml(item.category)}</div>
-                    <div>${claimed ? `<span class="badge ${familyBadge(item.assignedTo)}">${escapeHtml(item.assignedTo)}</span>` : `<span class="badge badge-unclaimed">Unclaimed</span>`}</div>
                     <div>${escapeHtml(item.store || "—")}</div>
-                    <button class="icon-btn" ${!claimed ? "disabled" : ""} onclick="unclaim('${item.id}')" title="Move item back to unclaimed">✕</button>
                   </div>
                 `;
               }).join("")}
             </div>
           </div>
         </section>
+        ` : ""}
       `;
 
       if (typeof options.restoreScrollY === "number") {
@@ -974,7 +1083,7 @@
             if (nextActive) {
               nextActive.focus({ preventScroll: true });
               if (typeof options.selectionStart === "number" && typeof nextActive.setSelectionRange === "function") {
-                nextActive.setSelectionRange(options.selectionStart, options.selectionEnd ?? options.selectionStart);
+                nextActive.setSelectionRange(options.selectionStart, options.selectionEnd != null ? options.selectionEnd : options.selectionStart);
               }
             }
           }
