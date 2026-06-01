@@ -243,7 +243,7 @@
     .grocery-row {
       min-width: 610px;
       display: grid;
-      grid-template-columns: 30px .50fr 1.05fr .34fr .48fr .36fr;
+      grid-template-columns: 30px .42fr .92fr .34fr .50fr .36fr;
       gap: 8px;
       align-items: center;
       padding: 10px 12px;
@@ -378,6 +378,33 @@
     .split-head { line-height: 1.05; white-space: normal; }
     .claim-btn { border: 0; cursor: pointer; }
     .family-page-card { max-width: 420px; }
+
+    .status-cell {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-width: 0;
+    }
+    .status-cell .badge {
+      text-align: center;
+      justify-content: center;
+      width: 100%;
+      max-width: 76px;
+      white-space: normal;
+      line-height: 1.05;
+      padding-left: 4px;
+      padding-right: 4px;
+    }
+    .item-name-input {
+      font-weight: 700;
+    }
+    @media (max-width: 640px) {
+      .status-cell .badge {
+        max-width: 58px;
+        font-size: 9.5px;
+      }
+    }
+
     .grocery-row > :first-child { text-align: center; justify-self: center; }
 
     .reset {
@@ -413,7 +440,7 @@
     .grocery-row {
       font-size: 13px;
       min-width: 590px;
-      grid-template-columns: 30px .48fr 1.05fr .32fr .44fr .34fr;
+      grid-template-columns: 30px .40fr .90fr .32fr .46fr .34fr;
       gap: 6px;
       padding: 8px 10px;
     }
@@ -445,7 +472,7 @@
       }
       .grocery-row {
         min-width: 540px;
-        grid-template-columns: 28px .46fr 1fr .30fr .40fr .32fr;
+        grid-template-columns: 28px .38fr .84fr .30fr .42fr .32fr;
         font-size: 12px;
         gap: 5px;
         padding: 7px 8px;
@@ -546,7 +573,7 @@
       }
       .grocery-row {
         min-width: 590px;
-        grid-template-columns: 28px .46fr 1fr .30fr .40fr .32fr;
+        grid-template-columns: 28px .38fr .84fr .30fr .42fr .32fr;
         padding: 10px;
       }
       .grocery-head {
@@ -591,7 +618,7 @@
       .summary-wrap th, .summary-wrap td { padding: 6px 4px !important; }
       .grocery-row {
         min-width: 540px !important;
-        grid-template-columns: 28px .46fr 1fr .30fr .40fr .32fr !important;
+        grid-template-columns: 28px .38fr .84fr .30fr .42fr .32fr !important;
         font-size: 12px !important;
         gap: 5px !important;
         padding: 7px 8px !important;
@@ -918,6 +945,16 @@
       state.items = state.items.map(i => i.id === id ? {...i, quantity: value} : i);
       save();
     }
+
+    function updateItemName(id, value) {
+      state.items = state.items.map(i => i.id === id ? {...i, name: value} : i);
+      save();
+    }
+
+    function updateItemCategory(id, value) {
+      state.items = state.items.map(i => i.id === id ? {...i, category: value} : i);
+      save();
+    }
     function updateTripTotal(id, value) {
       state.storeTrips = state.storeTrips.map(t => t.id === id ? {...t, totalPaid: value} : t);
       save(); render();
@@ -949,7 +986,7 @@
         ${state.activePage === "Summary" ? `
         <section class="card">
           <div class="card-content">
-            <h2>👥 Summary</h2>
+            <h2>Summary</h2>
             <div class="mobile-hint">Swipe sideways to view all family columns.</div>
             <div class="summary-wrap" style="margin-top:12px;">
               <table>
@@ -963,6 +1000,7 @@
                 </tbody>
               </table>
             </div>
+            <button id="summary-reset-button" class="reset" onclick="resetData()">Reset all data</button>
           </div>
         </section>
         ` : ""}
@@ -976,7 +1014,6 @@
               <option value="">Select family</option>
               ${families.map(f => `<option ${state.familyName === f ? "selected" : ""}>${f}</option>`).join("")}
             </select>
-            <button class="reset" onclick="resetData()">Reset all data</button>
           </div>
         </section>
         ` : ""}
@@ -986,7 +1023,7 @@
           <div class="card-content">
             <div class="section-title-row">
               <div>
-                <h2>🏪 Group and value grocery items</h2>
+                <h2>Group and value grocery items</h2>
                 <div class="subtle">Group claimed items that will be brought from home or purchased from a store, then record the total or estimated value for that group.</div>
               </div>
             </div>
@@ -1046,10 +1083,10 @@
             </div>
             <div class="mobile-hint">Swipe sideways to view and edit the full grocery list.</div>
             <div class="table-wrap">
-              <div class="grocery-row grocery-head"><div>+</div><div class="split-head">Status<br>Family</div><div>Item</div><div>Qty</div><div>Category</div><div class="split-head">Store<br>Home</div></div>
+              <div class="grocery-row grocery-head"><div>+</div><div class="split-head">Status/<br>Family</div><div>Item</div><div>Qty</div><div>Category</div><div class="split-head">Store/<br>Home</div></div>
               <div class="grocery-row add-row">
                 <button class="mini-action add" onclick="addItem()" title="Add item">＋</button>
-                <div class="subtle">—</div>
+                <div class="status-cell subtle">—</div>
                 <input data-focus-id="new-item-name" placeholder="Add item" value="${escapeHtml(state.newItem.name)}" oninput="setField('newItem.name', this.value)" />
                 <input data-focus-id="new-item-qty" placeholder="Qty" value="${escapeHtml(state.newItem.quantity)}" oninput="setField('newItem.quantity', this.value)" />
                 <select onchange="setField('newItem.category', this.value)">${optionList(categories, state.newItem.category)}</select>
@@ -1061,10 +1098,10 @@
                 return `
                   <div class="grocery-row ${claimed ? "claimed-row" : "unclaimed-row"}">
                     <button class="mini-action remove" onclick="openRemoveItemWarning('${item.id}')" title="Remove item">−</button>
-                    <div>${claimed ? `<button class="badge claim-btn ${familyBadge(item.assignedTo)}" onclick="toggleClaim('${item.id}')" title="Click to unclaim">${escapeHtml(item.assignedTo)}</button>` : `<button class="badge claim-btn badge-unclaimed" onclick="toggleClaim('${item.id}')" title="Claim this item">Claim</button>`}</div>
-                    <strong>${escapeHtml(item.name)}</strong>
+                    <div class="status-cell">${claimed ? `<button class="badge claim-btn ${familyBadge(item.assignedTo)}" onclick="toggleClaim('${item.id}')" title="Click to unclaim">${escapeHtml(item.assignedTo)}</button>` : `<button class="badge claim-btn badge-unclaimed" onclick="toggleClaim('${item.id}')" title="Claim this item">Claim</button>`}</div>
+                    <input class="item-name-input" value="${escapeHtml(item.name)}" placeholder="Item" oninput="updateItemName('${item.id}', this.value)" />
                     <input value="${escapeHtml(item.quantity)}" placeholder="—" oninput="updateQty('${item.id}', this.value)" />
-                    <div>${escapeHtml(item.category)}</div>
+                    <select onchange="updateItemCategory('${item.id}', this.value)">${optionList(categories, item.category)}</select>
                     <div>${escapeHtml(item.store || "—")}</div>
                   </div>
                 `;
