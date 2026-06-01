@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Keepin' It Reel - Grocery List</title>
+  <style>
+    :root {
+      --sand: #F7F4EE;
+      --warm-white: #FFFCF8;
+      --ocean: #2F6F87;
+      --ocean-dark: #25596D;
+      --sea-glass: #D9E8EC;
+      --sage: #DCEEE6;
+      --gold: #F8E9C9;
+      --taupe: #E7DED3;
+      --ink: #20343B;
+      --muted: #6B8A91;
+      --border: #D8CBB6;
+      --soft-border: #EFE4D2;
+      --drift: #9A8D7A;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--sand);
+      color: var(--ink);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.4;
+    }
+    .page {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    .header {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 20px;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .eyebrow {
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    h1 {
+      margin: 0;
+      color: var(--ocean);
+      font-size: clamp(32px, 5vw, 54px);
+      line-height: 1;
+      letter-spacing: -0.04em;
+    }
+    h2 {
+      margin: 0;
+      color: #24596B;
+      font-size: 22px;
+    }
+    ul.instructions {
+      margin: 14px 0 0;
+      padding-left: 22px;
+      color: #4E6970;
+    }
+    .card {
+      background: var(--warm-white);
+      border: 1px solid #E3D8C6;
+      border-radius: 22px;
+      box-shadow: 0 3px 12px rgba(216, 203, 182, 0.35);
+      margin-bottom: 20px;
+    }
+    .card-content {
+      padding: 18px;
+    }
+    .family-card {
+      padding: 16px;
+    }
+    select, input {
+      border: 1px solid var(--border);
+      background: var(--warm-white);
+      color: var(--ink);
+      border-radius: 12px;
+      padding: 10px 12px;
+      font: inherit;
+      outline: none;
+      width: 100%;
+    }
+    select:focus, input:focus {
+      box-shadow: 0 0 0 3px #9DC7CF;
+    }
+    button {
+      font: inherit;
+      cursor: pointer;
+    }
+    .btn {
+      border: 0;
+      background: var(--ocean);
+      color: white;
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-weight: 700;
+      transition: background .15s ease, opacity .15s ease;
+    }
+    .btn:hover { background: var(--ocean-dark); }
+    .btn:disabled {
+      opacity: .45;
+      cursor: not-allowed;
+    }
+    .btn-light {
+      background: transparent;
+      color: #24596B;
+      border: 1px solid var(--border);
+    }
+    .btn-light:hover { background: var(--sea-glass); }
+    .section-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 14px;
+    }
+    .subtle { color: var(--muted); font-size: 14px; margin-top: 4px; }
+    .summary-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: var(--warm-white);
+    }
+    table {
+      width: 100%;
+      min-width: 760px;
+      border-collapse: collapse;
+      table-layout: fixed;
+      font-size: 14px;
+    }
+    th {
+      background: var(--sea-glass);
+      color: #24596B;
+      text-align: center;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      padding: 10px;
+    }
+    th:first-child, td:first-child { text-align: left; width: 40%; }
+    th:not(:first-child), td:not(:first-child) { width: 15%; text-align: center; }
+    td {
+      border-top: 1px solid var(--soft-border);
+      padding: 10px;
+    }
+    .summary-total td {
+      background: var(--sand);
+      font-weight: 800;
+    }
+    .trip-entry {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 12px;
+      border: 1px solid var(--border);
+      background: var(--sand);
+      border-radius: 18px;
+      padding: 14px;
+      margin: 14px 0;
+    }
+    .chip-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .chip {
+      border: 1px solid var(--border);
+      background: var(--warm-white);
+      color: #4E6970;
+      padding: 7px 10px;
+      border-radius: 999px;
+      font-size: 14px;
+    }
+    .chip.selected {
+      border-color: var(--ocean);
+      background: var(--ocean);
+      color: white;
+    }
+    .trips-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 12px;
+    }
+    .trip-card {
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--ocean);
+      border-radius: 18px;
+      padding: 14px;
+      background: var(--warm-white);
+    }
+    .trip-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .trip-title-line {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .icon-btn {
+      border: 0;
+      background: transparent;
+      color: var(--drift);
+      border-radius: 999px;
+      padding: 4px;
+      line-height: 1;
+    }
+    .icon-btn:hover {
+      background: var(--sea-glass);
+      color: #24596B;
+    }
+    .item-pill {
+      display: inline-flex;
+      gap: 5px;
+      align-items: center;
+      border-radius: 999px;
+      background: var(--sea-glass);
+      color: #24596B;
+      padding: 5px 8px;
+      font-size: 12px;
+    }
+    .filters {
+      display: grid;
+      grid-template-columns: 1fr auto auto auto;
+      gap: 12px;
+      margin: 14px 0;
+    }
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: var(--warm-white);
+    }
+    .grocery-row {
+      min-width: 980px;
+      display: grid;
+      grid-template-columns: 44px 1.2fr .65fr .9fr .85fr .75fr 44px;
+      gap: 8px;
+      align-items: center;
+      padding: 10px 12px;
+      border-top: 1px solid var(--soft-border);
+    }
+    .grocery-head {
+      border-top: 0;
+      background: var(--sea-glass);
+      color: #24596B;
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+    }
+    .add-row { background: var(--sand); }
+    .unclaimed-row { background: #FBF1D7; }
+    .claimed-row { background: var(--warm-white); }
+    .check-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--warm-white);
+      color: var(--drift);
+      display: grid;
+      place-items: center;
+    }
+    .check-btn.selected {
+      border-color: var(--ocean);
+      background: var(--ocean);
+      color: white;
+    }
+    .check-btn:disabled {
+      opacity: .35;
+      cursor: not-allowed;
+    }
+    .badge {
+      display: inline-flex;
+      border-radius: 999px;
+      padding: 5px 9px;
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+    .badge-unclaimed {
+      background: var(--gold);
+      color: #8A6200;
+    }
+    .badge-lisa { background: var(--sea-glass); color: #24596B; }
+    .badge-john { background: var(--sage); color: #2F6B50; }
+    .badge-sally { background: var(--gold); color: #8A6200; }
+    .badge-parents { background: var(--taupe); color: #6B584A; }
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(32, 52, 59, .55);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      z-index: 20;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal {
+      width: min(540px, 100%);
+      max-height: 88vh;
+      overflow: auto;
+      background: var(--warm-white);
+      border-radius: 26px;
+      padding: 22px;
+      box-shadow: 0 22px 60px rgba(32, 52, 59, .25);
+    }
+    .modal h3 {
+      color: #24596B;
+      font-size: 26px;
+      margin: 0 0 6px;
+    }
+    .modal-item {
+      background: var(--sand);
+      border-radius: 14px;
+      padding: 10px;
+      margin-top: 8px;
+    }
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    .reset {
+      font-size: 12px;
+      color: var(--muted);
+      background: transparent;
+      border: 0;
+      text-decoration: underline;
+      margin-top: 10px;
+    }
+
+    .mobile-hint {
+      display: none;
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 8px;
+    }
+    .sticky-action {
+      position: sticky;
+      top: 8px;
+      z-index: 5;
+    }
+
+    /* Compact table mode: fits more columns into the initial mobile view */
+    .summary-wrap table {
+      font-size: 12px;
+      min-width: 560px;
+    }
+    .summary-wrap th,
+    .summary-wrap td {
+      padding: 7px 6px;
+    }
+    .grocery-row {
+      font-size: 13px;
+      min-width: 760px;
+      grid-template-columns: 36px 1.15fr .5fr .78fr .72fr .65fr 36px;
+      gap: 6px;
+      padding: 8px 10px;
+    }
+    .grocery-head {
+      font-size: 10.5px;
+    }
+    .grocery-row input,
+    .grocery-row select {
+      padding: 7px 8px;
+      font-size: 13px;
+      min-height: 36px;
+    }
+    .badge {
+      font-size: 11px;
+      padding: 4px 7px;
+    }
+    .check-btn {
+      width: 30px;
+      height: 30px;
+    }
+    @media (max-width: 640px) {
+      .summary-wrap table {
+        font-size: 11px;
+        min-width: 510px;
+      }
+      .summary-wrap th,
+      .summary-wrap td {
+        padding: 6px 4px;
+      }
+      .grocery-row {
+        min-width: 690px;
+        grid-template-columns: 34px 1.1fr .45fr .72fr .66fr .58fr 34px;
+        font-size: 12px;
+        gap: 5px;
+        padding: 7px 8px;
+      }
+      .grocery-head {
+        font-size: 9.5px;
+      }
+      .grocery-row input,
+      .grocery-row select {
+        font-size: 12px;
+        padding: 6px 6px;
+        min-height: 34px;
+      }
+      .badge {
+        font-size: 10px;
+        padding: 3px 6px;
+      }
+      .check-btn {
+        width: 30px;
+        height: 30px;
+      }
+    }
+
+    @media (max-width: 640px) {
+      body {
+        -webkit-text-size-adjust: 100%;
+      }
+      input, select, button {
+        font-size: 16px;
+        min-height: 44px;
+      }
+      h1 {
+        font-size: 34px;
+        line-height: 1.04;
+      }
+      h2 {
+        font-size: 20px;
+      }
+      .page {
+        padding: 12px;
+      }
+      .card {
+        border-radius: 18px;
+        margin-bottom: 14px;
+      }
+      .card-content {
+        padding: 14px;
+      }
+      .family-card {
+        padding: 12px;
+      }
+      .family-card select {
+        width: 100%;
+      }
+      .instructions {
+        font-size: 15px;
+      }
+      .summary-wrap,
+      .table-wrap {
+        margin-left: -4px;
+        margin-right: -4px;
+        border-radius: 14px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+      .mobile-hint {
+        display: block;
+      }
+      .section-title-row .btn {
+        width: 100%;
+      }
+      .sticky-action {
+        position: sticky;
+        bottom: 8px;
+        top: auto;
+        width: 100%;
+        box-shadow: 0 8px 24px rgba(47, 111, 135, .22);
+      }
+      .trip-entry {
+        grid-template-columns: 1fr;
+        padding: 12px;
+      }
+      .trip-entry select,
+      .trip-entry input {
+        width: 100%;
+      }
+      .trips-grid {
+        grid-template-columns: 1fr;
+      }
+      .chip, .item-pill {
+        font-size: 14px;
+        min-height: 36px;
+        align-items: center;
+      }
+      .filters {
+        grid-template-columns: 1fr;
+        gap: 8px;
+      }
+      .grocery-row {
+        min-width: 860px;
+        grid-template-columns: 40px 1.15fr .62fr .88fr .82fr .7fr 40px;
+        padding: 10px;
+      }
+      .grocery-head {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+      }
+      .check-btn {
+        width: 36px;
+        height: 36px;
+      }
+      .icon-btn {
+        min-height: 36px;
+        min-width: 36px;
+      }
+      .modal {
+        max-height: 84vh;
+        border-radius: 22px;
+        padding: 18px;
+      }
+      .modal-actions {
+        flex-direction: column-reverse;
+      }
+      .modal-actions .btn {
+        width: 100%;
+      }
+      table {
+        min-width: 660px;
+      }
+    }
+
+    @media (max-width: 820px) {
+      .page { padding: 14px; }
+      .header { grid-template-columns: 1fr; }
+      .filters { grid-template-columns: 1fr; }
+      .trip-entry { grid-template-columns: 1fr; }
+      .section-title-row { align-items: flex-start; flex-direction: column; }
+    }
+  
+    @media (max-width: 640px) {
+      .summary-wrap table { min-width: 510px !important; font-size: 11px !important; }
+      .summary-wrap th, .summary-wrap td { padding: 6px 4px !important; }
+      .grocery-row {
+        min-width: 690px !important;
+        grid-template-columns: 34px 1.1fr .45fr .72fr .66fr .58fr 34px !important;
+        font-size: 12px !important;
+        gap: 5px !important;
+        padding: 7px 8px !important;
+      }
+      .grocery-head { font-size: 9.5px !important; }
+      .grocery-row input, .grocery-row select {
+        font-size: 12px !important;
+        min-height: 34px !important;
+        padding: 6px 6px !important;
+      }
+    }
+
+  </style>
+</head>
+<body>
+  <div id="app" class="page"></div>
+
+  <div id="modal" class="modal-backdrop">
+    <div class="modal">
+      <h3 id="modal-title"></h3>
+      <p id="modal-subtitle" class="subtle"></p>
+      <div id="modal-items"></div>
+      <div class="modal-actions">
+        <button id="modal-cancel" class="btn btn-light">Cancel</button>
+        <button id="modal-confirm" class="btn">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const families = ["Lisa", "John", "Sally", "Parents"];
+    const categories = [
+      "Produce", "Dairy & Refrigerated", "Meat, Seafood & Protein", "Bakery & Bread",
+      "Dry Goods / Pantry", "Frozen Foods", "Other Beverages", "Alcohol", "Household Goods"
+    ];
+    const stores = ["Home", "Costco", "Walmart", "Target", "Publix", "Kroger", "Trader Joe's", "Whole Foods", "Total Wine", "Local grocery", "Other"];
+
+    const itemSeed = [
+      ["Lettuce", "Lots", "Produce"], ["Tomatoes", "Lots", "Produce"], ["Sweet potatoes", "3 lb", "Produce"],
+      ["Large yellow onions", "3", "Produce"], ["Red onion", "", "Produce"], ["Garlic", "2 bulbs", "Produce"],
+      ["Carrots", "", "Produce"], ["Bananas", "12", "Produce"], ["Strawberries", "", "Produce"], ["Grapes", "", "Produce"],
+      ["Watermelon", "", "Produce"], ["Mangoes", "", "Produce"], ["Limes", "3-4 bags", "Produce"],
+      ["Fresh mint", "2 packs", "Produce"], ["Cilantro", "4 bunches", "Produce"],
+      ["Cream cheese", "4 packs", "Dairy & Refrigerated"], ["Eggs", "", "Dairy & Refrigerated"],
+      ["Salted butter", "", "Dairy & Refrigerated"], ["Skim milk", "1.5 gallons", "Dairy & Refrigerated"],
+      ["Half and half", "Big container", "Dairy & Refrigerated"], ["Cheese sticks / recreational cheese", "", "Dairy & Refrigerated"],
+      ["Shredded mozzarella", "16 oz", "Dairy & Refrigerated"], ["Shredded cheddar", "12 cups", "Dairy & Refrigerated"],
+      ["Ricotta", "32 oz", "Dairy & Refrigerated"], ["Parmesan", "2 c", "Dairy & Refrigerated"],
+      ["Kid yogurts", "16", "Dairy & Refrigerated"], ["Greek yogurts", "", "Dairy & Refrigerated"],
+      ["Siggi vanilla cinnamon yogurts", "", "Dairy & Refrigerated"], ["Deli meat / cheese", "Previous order saved", "Dairy & Refrigerated"],
+      ["Turkey sausage patties", "", "Meat, Seafood & Protein"], ["Beef for baked ziti", "", "Meat, Seafood & Protein"],
+      ["Kielbasa", "3", "Meat, Seafood & Protein"], ["Hot dogs", "1 package", "Meat, Seafood & Protein"],
+      ["Chicken", "", "Meat, Seafood & Protein"], ["Chicken breast", "4.5 lb", "Meat, Seafood & Protein"],
+      ["Salmon", "4 lb", "Meat, Seafood & Protein"], ["Ribs", "4 racks", "Meat, Seafood & Protein"],
+      ["Bagels", "4-5 packs", "Bakery & Bread"], ["Hot dog buns", "Small pack", "Bakery & Bread"],
+      ["Bakery sliced bread", "", "Bakery & Bread"], ["Honey wheat bread", "4 loaves", "Bakery & Bread"],
+      ["Peanut butter", "", "Dry Goods / Pantry"], ["Jelly", "", "Dry Goods / Pantry"], ["Honey", "", "Dry Goods / Pantry"],
+      ["Cereals", "", "Dry Goods / Pantry"], ["Coffee", "2 bags", "Dry Goods / Pantry"], ["Espresso", "", "Dry Goods / Pantry"],
+      ["Sugar", "Small", "Dry Goods / Pantry"], ["Coffee filters", "", "Dry Goods / Pantry"], ["Salt", "", "Dry Goods / Pantry"],
+      ["Pepper", "", "Dry Goods / Pantry"], ["Breakfast bars / kid bars", "", "Dry Goods / Pantry"],
+      ["Mayonnaise", "", "Dry Goods / Pantry"], ["Ketchup", "", "Dry Goods / Pantry"], ["BBQ sauce", "", "Dry Goods / Pantry"],
+      ["Cocktail sauce", "", "Dry Goods / Pantry"], ["Salad dressings", "", "Dry Goods / Pantry"], ["Olive oil", "", "Dry Goods / Pantry"],
+      ["Canola oil", "", "Dry Goods / Pantry"], ["Rice", "Lots", "Dry Goods / Pantry"], ["Black beans", "6 cans", "Dry Goods / Pantry"],
+      ["Ziti", "2 boxes", "Dry Goods / Pantry"], ["Herbs for ziti", "", "Dry Goods / Pantry"], ["Tortillas", "36 6-inch", "Dry Goods / Pantry"],
+      ["Chopped green chilis", "3 4-oz cans", "Dry Goods / Pantry"], ["Chili powder", "", "Dry Goods / Pantry"], ["Cumin", "", "Dry Goods / Pantry"],
+      ["Tomato sauce", "48 oz in cans", "Dry Goods / Pantry"], ["Marinara sauce", "4 jars", "Dry Goods / Pantry"],
+      ["Chicken broth", "2 containers", "Dry Goods / Pantry"], ["Coconut milk", "4 cans", "Dry Goods / Pantry"],
+      ["Pepita seeds", "", "Dry Goods / Pantry"], ["Cocoa seasoning", "", "Dry Goods / Pantry"], ["Brownie mix", "2", "Dry Goods / Pantry"],
+      ["Graham crackers", "2 family-size packs", "Dry Goods / Pantry"], ["Marshmallows", "1 big bag", "Dry Goods / Pantry"],
+      ["Hershey's chocolate", "4 packs", "Dry Goods / Pantry"], ["Cookies", "3 varieties", "Dry Goods / Pantry"], ["Blondies", "", "Dry Goods / Pantry"],
+      ["Crunchies / chips", "Sweet potato chips, SunChips, etc.", "Dry Goods / Pantry"], ["Simple syrup", "", "Dry Goods / Pantry"],
+      ["Sandwich baggies", "", "Dry Goods / Pantry"],
+      ["Frozen strawberries", "", "Frozen Foods"], ["Frozen mango", "", "Frozen Foods"], ["Ice cream novelties", "", "Frozen Foods"],
+      ["LaCroix", "", "Other Beverages"], ["Club soda", "2L", "Other Beverages"], ["Sodas", "", "Other Beverages"], ["Gatorade", "", "Other Beverages"],
+      ["Clear rum", "", "Alcohol"], ["Dark rum", "", "Alcohol"], ["Sambuca", "", "Alcohol"], ["Vodka", "", "Alcohol"], ["Tequila", "", "Alcohol"],
+      ["Hard seltzers", "", "Alcohol"], ["Beer", "", "Alcohol"],
+      ["Toilet paper", "6 rolls", "Household Goods"], ["Paper towels", "4 rolls", "Household Goods"], ["Napkins", "250-350", "Household Goods"],
+      ["Hand soap", "2", "Household Goods"], ["Small dish soap", "", "Household Goods"], ["Dishwasher detergent", "15-20 loads", "Household Goods"],
+      ["Laundry detergent", "", "Household Goods"], ["Trash bags", "15-20", "Household Goods"], ["Aluminum foil", "Small", "Household Goods"],
+      ["Plastic wrap", "Small", "Household Goods"], ["S'mores skewers", "", "Household Goods"], ["Foil pans", "", "Household Goods"]
+    ];
+
+    const defaultItems = itemSeed.map(([name, quantity, category], index) => ({
+      id: `item-${index}`, name, quantity, category, assignedTo: "", store: "", storeTripId: ""
+    }));
+
+    function cloneDefaultItems() {
+      return JSON.parse(JSON.stringify(defaultItems));
+    }
+
+    function readStoredJson(key, fallback) {
+      try {
+        const raw = localStorage.getItem(key);
+        return raw ? JSON.parse(raw) : fallback;
+      } catch {
+        return fallback;
+      }
+    }
+
+    const state = {
+      familyName: "",
+      items: readStoredJson("kir-items", cloneDefaultItems()),
+      storeTrips: readStoredJson("kir-storeTrips", []),
+      selected: [],
+      groupSelected: [],
+      claimStore: "Home",
+      customStore: "",
+      storeTotal: "",
+      newItem: { name: "", quantity: "", category: "Dry Goods / Pantry" },
+      categoryFilter: "Category",
+      familyFilter: "Family",
+      storeFilter: "Store/Home",
+      query: ""
+    };
+
+    function save() {
+      localStorage.setItem("kir-items", JSON.stringify(state.items));
+      localStorage.setItem("kir-storeTrips", JSON.stringify(state.storeTrips));
+    }
+    function currency(value) {
+      return `$${(Number(value) || 0).toFixed(2)}`;
+    }
+    function familyBadge(family) {
+      return {
+        Lisa: "badge-lisa", John: "badge-john", Sally: "badge-sally", Parents: "badge-parents"
+      }[family] || "badge-john";
+    }
+    function escapeHtml(str) {
+      return String(str ?? "").replace(/[&<>"']/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;" }[m]));
+    }
+    function setField(path, value) {
+      const active = document.activeElement;
+      const focusId = active?.dataset?.focusId;
+      const selectionStart = typeof active?.selectionStart === "number" ? active.selectionStart : null;
+      const selectionEnd = typeof active?.selectionEnd === "number" ? active.selectionEnd : null;
+      const scrollY = window.scrollY;
+
+      const parts = path.split(".");
+      let ref = state;
+      while (parts.length > 1) ref = ref[parts.shift()];
+      ref[parts[0]] = value;
+
+      render({ restoreScrollY: scrollY, restoreFocusId: focusId, selectionStart, selectionEnd });
+    }
+    function resetData() {
+      if (!confirm("Reset all items to unclaimed and clear all home/store groups?")) return;
+      state.items = cloneDefaultItems();
+      state.storeTrips = [];
+      state.selected = [];
+      state.groupSelected = [];
+      state.familyName = "";
+      save();
+      render();
+    }
+    function getSummary() {
+      const summary = {};
+      families.forEach(f => summary[f] = { totalItems: 0, totalValue: 0, categories: Object.fromEntries(categories.map(c => [c, 0])) });
+      state.items.forEach(item => {
+        if (!families.includes(item.assignedTo)) return;
+        summary[item.assignedTo].totalItems += 1;
+        summary[item.assignedTo].categories[item.category] += 1;
+      });
+      state.storeTrips.forEach(trip => {
+        if (families.includes(trip.family)) summary[trip.family].totalValue += Number(trip.totalPaid) || 0;
+      });
+      return summary;
+    }
+    function filteredItems() {
+      return state.items.filter(item => {
+        const category = state.categoryFilter === "Category" || item.category === state.categoryFilter;
+        const family = state.familyFilter === "Family" || (state.familyFilter === "Unclaimed" ? !item.assignedTo : item.assignedTo === state.familyFilter);
+        const store = state.storeFilter === "Store/Home" || (state.storeFilter === "Ungrouped" ? !item.store : item.store === state.storeFilter);
+        const query = `${item.name} ${item.quantity} ${item.category} ${item.assignedTo} ${item.store}`.toLowerCase().includes(state.query.toLowerCase());
+        return category && family && store && query;
+      });
+    }
+    function storeTripGroups() {
+      return state.storeTrips.map(trip => ({...trip, items: state.items.filter(item => item.storeTripId === trip.id)})).filter(trip => trip.items.length > 0);
+    }
+    function addItem() {
+      if (!state.newItem.name.trim()) return;
+      state.items.push({
+        id: `item-${Date.now()}`, name: state.newItem.name.trim(), quantity: state.newItem.quantity.trim(),
+        category: state.newItem.category, assignedTo: "", store: "", storeTripId: ""
+      });
+      state.newItem = { name: "", quantity: "", category: "Dry Goods / Pantry" };
+      save(); render();
+    }
+    function toggleSelected(id) {
+      state.selected = state.selected.includes(id) ? state.selected.filter(x => x !== id) : [...state.selected, id];
+      render();
+    }
+    function toggleGroupSelected(id) {
+      state.groupSelected = state.groupSelected.includes(id) ? state.groupSelected.filter(x => x !== id) : [...state.groupSelected, id];
+      render();
+    }
+    function openModal(type) {
+      const modal = document.getElementById("modal");
+      const title = document.getElementById("modal-title");
+      const subtitle = document.getElementById("modal-subtitle");
+      const list = document.getElementById("modal-items");
+      const confirm = document.getElementById("modal-confirm");
+      let items = [];
+
+      if (type === "assign") {
+        items = state.items.filter(item => state.selected.includes(item.id));
+        title.textContent = "Confirm assignment";
+        subtitle.innerHTML = `These items will be assigned to <strong>${escapeHtml(state.familyName)}</strong>.`;
+        confirm.textContent = "Confirm assignment";
+        confirm.onclick = () => {
+          state.items = state.items.map(item => state.selected.includes(item.id) ? {...item, assignedTo: state.familyName} : item);
+          state.selected = [];
+          closeModal();
+          save(); render();
+        };
+      } else {
+        const finalStore = state.claimStore === "Other" ? (state.customStore.trim() || "Other") : state.claimStore;
+        items = state.items.filter(item => state.groupSelected.includes(item.id));
+        title.textContent = "Confirm home / store group";
+        subtitle.innerHTML = `Store/Home: <strong>${escapeHtml(finalStore)}</strong> · Total value: <strong>${currency(state.storeTotal)}</strong>`;
+        confirm.textContent = "Confirm group";
+        confirm.onclick = () => {
+          const tripId = `trip-${Date.now()}`;
+          state.storeTrips.push({ id: tripId, family: state.familyName, store: finalStore, totalPaid: state.storeTotal });
+          state.items = state.items.map(item => state.groupSelected.includes(item.id) ? {...item, store: finalStore, storeTripId: tripId} : item);
+          state.groupSelected = [];
+          state.storeTotal = "";
+          closeModal();
+          save(); render();
+        };
+      }
+
+      list.innerHTML = items.map(item => `
+        <div class="modal-item">
+          <strong>${escapeHtml(item.name)}</strong>
+          <div class="subtle">${escapeHtml(item.quantity || "No quantity")} · ${escapeHtml(item.category)}</div>
+        </div>
+      `).join("");
+      modal.classList.add("open");
+    }
+    function closeModal() {
+      document.getElementById("modal").classList.remove("open");
+    }
+    document.getElementById("modal-cancel").onclick = closeModal;
+
+    function unclaim(id) {
+      const item = state.items.find(i => i.id === id);
+      state.items = state.items.map(i => i.id === id ? {...i, assignedTo: "", store: "", storeTripId: ""} : i);
+      state.selected = state.selected.filter(x => x !== id);
+      state.groupSelected = state.groupSelected.filter(x => x !== id);
+      if (item && item.storeTripId && !state.items.some(i => i.storeTripId === item.storeTripId)) {
+        state.storeTrips = state.storeTrips.filter(t => t.id !== item.storeTripId);
+      }
+      save(); render();
+    }
+    function ungroupItem(id) {
+      const item = state.items.find(i => i.id === id);
+      if (!item || !item.storeTripId) return;
+      const tripId = item.storeTripId;
+      state.items = state.items.map(i => i.id === id ? {...i, store: "", storeTripId: ""} : i);
+      if (!state.items.some(i => i.storeTripId === tripId)) {
+        state.storeTrips = state.storeTrips.filter(t => t.id !== tripId);
+      }
+      save(); render();
+    }
+    function ungroupTrip(tripId) {
+      state.items = state.items.map(i => i.storeTripId === tripId ? {...i, store: "", storeTripId: ""} : i);
+      state.storeTrips = state.storeTrips.filter(t => t.id !== tripId);
+      save(); render();
+    }
+    function updateQty(id, value) {
+      state.items = state.items.map(i => i.id === id ? {...i, quantity: value} : i);
+      save();
+    }
+    function updateTripTotal(id, value) {
+      state.storeTrips = state.storeTrips.map(t => t.id === id ? {...t, totalPaid: value} : t);
+      save(); render();
+    }
+
+    function optionList(options, selected) {
+      return options.map(o => `<option ${o === selected ? "selected" : ""}>${escapeHtml(o)}</option>`).join("");
+    }
+
+    function render(options = {}) {
+      const summary = getSummary();
+      const ungrouped = state.items.filter(item => item.assignedTo === state.familyName && !item.storeTripId);
+      const trips = storeTripGroups();
+      const selectedCount = state.selected.length;
+      const groupCount = state.groupSelected.length;
+
+      document.getElementById("app").innerHTML = `
+        <header class="header">
+          <div>
+            <div class="eyebrow">〰️ Vacation house grocery coordinator</div>
+            <h1>🎣 Keepin' It Reel - Grocery List</h1>
+            <ul class="instructions">
+              <li>Select a family in the box to the right</li>
+              <li>Claim items on grocery list</li>
+              <li>Mark claimed items as brought from home or purchased from store with total or estimated value per group</li>
+            </ul>
+          </div>
+          <div class="card family-card">
+            <select onchange="setField('familyName', this.value)">
+              <option value="">Select family</option>
+              ${families.map(f => `<option ${state.familyName === f ? "selected" : ""}>${f}</option>`).join("")}
+            </select>
+            <button class="reset" onclick="resetData()">Reset all data</button>
+          </div>
+        </header>
+
+        <section class="card">
+          <div class="card-content">
+            <h2>👥 Summary</h2>
+            <div class="mobile-hint">Swipe sideways to view all family columns.</div>
+            <div class="summary-wrap" style="margin-top:12px;">
+              <table>
+                <thead>
+                  <tr><th>Category</th>${families.map(f => `<th>${f}</th>`).join("")}</tr>
+                </thead>
+                <tbody>
+                  <tr class="summary-total"><td>Total items</td>${families.map(f => `<td>${summary[f].totalItems}</td>`).join("")}</tr>
+                  <tr class="summary-total"><td>Total $ value</td>${families.map(f => `<td>${currency(summary[f].totalValue)}</td>`).join("")}</tr>
+                  ${categories.map(c => `<tr><td><strong>${escapeHtml(c)}</strong></td>${families.map(f => `<td>${summary[f].categories[c]}</td>`).join("")}</tr>`).join("")}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-content">
+            <div class="section-title-row">
+              <div>
+                <h2>🏪 From home / Store trips</h2>
+                <div class="subtle">Group claimed items that will be brought from home or purchased from a store, then record the total or estimated value for that group.</div>
+              </div>
+              <button class="btn sticky-action" ${!state.familyName || groupCount === 0 || !state.storeTotal.trim() ? "disabled" : ""} onclick="openModal('store')">Complete home / store group</button>
+            </div>
+
+            ${state.familyName ? `
+              <div class="trip-entry">
+                <div>
+                  <div class="subtle" style="font-weight:800;text-transform:uppercase;">${escapeHtml(state.familyName)}'s ungrouped claimed items</div>
+                  <div class="chip-list">
+                    ${ungrouped.length ? ungrouped.map(item => `<button class="chip ${state.groupSelected.includes(item.id) ? "selected" : ""}" onclick="toggleGroupSelected('${item.id}')">${escapeHtml(item.name)}</button>`).join("") : `<span class="subtle">No ungrouped claimed items.</span>`}
+                  </div>
+                </div>
+                <select onchange="setField('claimStore', this.value)">${optionList(stores, state.claimStore)}</select>
+                <div>
+                  <input data-focus-id="store-total" placeholder="Total value" inputmode="decimal" value="${escapeHtml(state.storeTotal)}" oninput="setField('storeTotal', this.value)" />
+                  ${state.claimStore === "Other" ? `<input data-focus-id="custom-store" style="margin-top:8px;" placeholder="Store name" value="${escapeHtml(state.customStore)}" oninput="setField('customStore', this.value)" />` : ""}
+                </div>
+              </div>
+            ` : `<p class="subtle">Select a family to group claimed items.</p>`}
+
+            ${trips.length ? `<div class="trips-grid">
+              ${trips.map(trip => `
+                <div class="trip-card">
+                  <div class="trip-head">
+                    <div>
+                      <div class="trip-title-line">
+                        <strong style="color:#24596B;">${escapeHtml(trip.store)}</strong>
+                        <button class="icon-btn" onclick="ungroupTrip('${trip.id}')" title="Move whole group back to ungrouped">✕</button>
+                      </div>
+                      <div class="subtle">${escapeHtml(trip.family)} · ${trip.items.length} item${trip.items.length === 1 ? "" : "s"}</div>
+                    </div>
+                    <input style="width:110px;" inputmode="decimal" value="${escapeHtml(trip.totalPaid)}" oninput="updateTripTotal('${trip.id}', this.value)" />
+                  </div>
+                  <div class="chip-list">
+                    ${trip.items.map(item => `<span class="item-pill">${escapeHtml(item.name)} <button class="icon-btn" onclick="ungroupItem('${item.id}')" title="Move item back to ungrouped">✕</button></span>`).join("")}
+                  </div>
+                </div>
+              `).join("")}
+            </div>` : `<p class="subtle">No home or store groups entered yet.</p>`}
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-content">
+            <div class="section-title-row">
+              <h2>Grocery list</h2>
+              <button class="btn sticky-action" ${!state.familyName || selectedCount === 0 ? "disabled" : ""} onclick="openModal('assign')">Claim ${selectedCount || "selected"} item${selectedCount === 1 ? "" : "s"}</button>
+            </div>
+            <div class="filters">
+              <input data-focus-id="grocery-search" placeholder="Search items, families, stores, categories..." value="${escapeHtml(state.query)}" oninput="setField('query', this.value)" />
+              <select onchange="setField('categoryFilter', this.value)">${optionList(["Category", ...categories], state.categoryFilter)}</select>
+              <select onchange="setField('familyFilter', this.value)">${optionList(["Family", "Unclaimed", ...families], state.familyFilter)}</select>
+              <select onchange="setField('storeFilter', this.value)">${optionList(["Store/Home", "Ungrouped", ...stores], state.storeFilter)}</select>
+            </div>
+            <div class="mobile-hint">Swipe sideways to view and edit the full grocery list.</div>
+            <div class="table-wrap">
+              <div class="grocery-row grocery-head"><div></div><div>Item</div><div>Qty</div><div>Category</div><div>Status / Family</div><div>Store / Home</div><div></div></div>
+              <div class="grocery-row add-row">
+                <div style="text-align:center;color:#24596B;">＋</div>
+                <input data-focus-id="new-item-name" placeholder="Add item" value="${escapeHtml(state.newItem.name)}" oninput="setField('newItem.name', this.value)" />
+                <input data-focus-id="new-item-qty" placeholder="Qty" value="${escapeHtml(state.newItem.quantity)}" oninput="setField('newItem.quantity', this.value)" />
+                <select onchange="setField('newItem.category', this.value)">${optionList(categories, state.newItem.category)}</select>
+                <div class="subtle">Unclaimed</div>
+                <div class="subtle">—</div>
+                <button class="btn" onclick="addItem()">＋</button>
+              </div>
+              ${filteredItems().map(item => {
+                const claimed = Boolean(item.assignedTo);
+                const selected = state.selected.includes(item.id);
+                return `
+                  <div class="grocery-row ${claimed ? "claimed-row" : "unclaimed-row"}">
+                    <button class="check-btn ${selected ? "selected" : ""}" ${claimed ? "disabled" : ""} onclick="toggleSelected('${item.id}')">${selected ? "✓" : "○"}</button>
+                    <strong>${escapeHtml(item.name)}</strong>
+                    <input value="${escapeHtml(item.quantity)}" placeholder="—" oninput="updateQty('${item.id}', this.value)" />
+                    <div>${escapeHtml(item.category)}</div>
+                    <div>${claimed ? `<span class="badge ${familyBadge(item.assignedTo)}">${escapeHtml(item.assignedTo)}</span>` : `<span class="badge badge-unclaimed">Unclaimed</span>`}</div>
+                    <div>${escapeHtml(item.store || "—")}</div>
+                    <button class="icon-btn" ${!claimed ? "disabled" : ""} onclick="unclaim('${item.id}')" title="Move item back to unclaimed">✕</button>
+                  </div>
+                `;
+              }).join("")}
+            </div>
+          </div>
+        </section>
+      `;
+
+      if (typeof options.restoreScrollY === "number") {
+        requestAnimationFrame(() => {
+          window.scrollTo({ top: options.restoreScrollY, left: 0, behavior: "auto" });
+          if (options.restoreFocusId) {
+            const nextActive = document.querySelector(`[data-focus-id="${options.restoreFocusId}"]`);
+            if (nextActive) {
+              nextActive.focus({ preventScroll: true });
+              if (typeof options.selectionStart === "number" && typeof nextActive.setSelectionRange === "function") {
+                nextActive.setSelectionRange(options.selectionStart, options.selectionEnd ?? options.selectionStart);
+              }
+            }
+          }
+        });
+      }
+    }
+
+    render();
+  </script>
+</body>
+</html>
