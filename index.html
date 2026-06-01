@@ -334,6 +334,20 @@
       margin-top: 16px;
     }
 
+    .sync-status {
+      margin: 10px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .sync-status strong {
+      color: #24596B;
+    }
+    .sync-status.local {
+      color: #8A6200;
+    }
+    .sync-status.live {
+      color: #2F6B50;
+    }
     .page-ribbon {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -648,7 +662,47 @@
     </div>
   </div>
 
+  <!--
+    FIRESTORE RULES FOR VACATION APP / SHORT-TERM SHARED LINK:
+    Use these only for a short private-family trip link, because anyone with the URL can edit.
+
+    rules_version = '2';
+    service cloud.firestore {
+      match /databases/{database}/documents {
+        match /groceryApps/keepin-it-reel {
+          allow read, write: if true;
+        }
+      }
+    }
+
+    For a more private production version, add sign-in or a shared passcode before opening writes.
+  -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+
   <script>
+    /*
+      FIREBASE SETUP REQUIRED:
+      1) Create a Firebase project.
+      2) Add a Web app.
+      3) Copy your firebaseConfig object here, replacing the placeholder values below.
+      4) Enable Firestore Database in Firebase Console.
+      5) Redeploy this index.html to Vercel.
+
+      Until this block is replaced with real Firebase values, the app falls back to this browser only.
+    */
+    const firebaseConfig = {
+  	apiKey: "AIzaSyDEwsfCSRif7E1CwvSeh0xwICmbjJwUBT0",
+  	authDomain: "keepin-it-reel.firebaseapp.com",
+  	projectId: "keepin-it-reel",
+  	storageBucket: "keepin-it-reel.firebasestorage.app",
+  	messagingSenderId: "839998627734",
+  	appId: "1:839998627734:web:c84fb0fed1ef530e08c7b7",
+  	measurementId: "G-SS8VD52GKW"
+    };
+
+    const FIREBASE_COLLECTION = "groceryApps";
+    const FIREBASE_DOC_ID = "keepin-it-reel";
     const families = ["Lisa", "John", "Sally", "Parents"];
     const categories = [
       "Produce", "Dairy & Refrigerated", "Meat, Seafood & Protein", "Bakery & Bread",
@@ -735,9 +789,82 @@
       activePage: "Summary"
     };
 
+    let db = null;
+    let appDocRef = null;
+    let firebaseReady = false;
+    let applyingRemoteUpdate = false;
+
+    function firebaseConfigIsFilled() {
+      return firebaseConfig &&
+        firebaseConfig.apiKey &&
+        !firebaseConfig.apiKey.startsWith("YOUR_") &&
+        firebaseConfig.projectId &&
+        !firebaseConfig.projectId.startsWith("YOUR_");
+    }
+
+    function setSyncStatus(message, mode) {
+      const el = document.getElementById("sync-status");
+      if (!el) return;
+      el.textContent = message;
+      el.className = `sync-status ${mode || ""}`;
+    }
+
     function save() {
       localStorage.setItem("kir-items", JSON.stringify(state.items));
       localStorage.setItem("kir-storeTrips", JSON.stringify(state.storeTrips));
+
+      if (!firebaseReady || !appDocRef || applyingRemoteUpdate) return;
+
+      appDocRef.set({
+        items: state.items,
+        storeTrips: state.storeTrips,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true }).catch((error) => {
+        console.error("Firestore save failed:", error);
+        setSyncStatus("Sync error: could not save to Firebase. Changes are saved on this device only.", "local");
+      });
+    }
+
+    function initFirebaseSync() {
+      if (!firebaseConfigIsFilled()) {
+        setSyncStatus("Sync: this browser only. Add Firebase config to enable live shared syncing.", "local");
+        return;
+      }
+
+      try {
+        firebase.initializeApp(firebaseConfig);
+        db = firebase.firestore();
+        appDocRef = db.collection(FIREBASE_COLLECTION).doc(FIREBASE_DOC_ID);
+
+        appDocRef.onSnapshot((doc) => {
+          if (!doc.exists) {
+            appDocRef.set({
+              items: state.items && state.items.length ? state.items : cloneDefaultItems(),
+              storeTrips: state.storeTrips || [],
+              createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+              updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+            return;
+          }
+
+          const data = doc.data() || {};
+          applyingRemoteUpdate = true;
+          if (Array.isArray(data.items)) state.items = data.items;
+          if (Array.isArray(data.storeTrips)) state.storeTrips = data.storeTrips;
+          localStorage.setItem("kir-items", JSON.stringify(state.items));
+          localStorage.setItem("kir-storeTrips", JSON.stringify(state.storeTrips));
+          applyingRemoteUpdate = false;
+          firebaseReady = true;
+          setSyncStatus("Sync: live shared Firebase syncing is on.", "live");
+          render();
+        }, (error) => {
+          console.error("Firestore listener failed:", error);
+          setSyncStatus("Sync error: Firebase listener failed. Using this browser only.", "local");
+        });
+      } catch (error) {
+        console.error("Firebase initialization failed:", error);
+        setSyncStatus("Sync error: Firebase could not initialize. Check your config.", "local");
+      }
     }
     function currency(value) {
       return `$${(Number(value) || 0).toFixed(2)}`;
@@ -976,6 +1103,7 @@
           <div>
             <div class="eyebrow">〰️ Vacation house grocery coordinator</div>
             <h1>🎣 Keepin' It Reel - Grocery List</h1>
+            <div id="sync-status" class="sync-status local">Sync: this browser only. Add Firebase config to enable live shared syncing.</div>
           </div>
         </header>
 
@@ -1129,6 +1257,7 @@
     }
 
     render();
+    initFirebaseSync();
   </script>
 </body>
 </html>
