@@ -793,6 +793,7 @@ const firebaseConfig = {
     let appDocRef = null;
     let firebaseReady = false;
     let applyingRemoteUpdate = false;
+    let saveDebounceTimer = null;
 
     function firebaseConfigIsFilled() {
       return firebaseConfig &&
@@ -825,53 +826,36 @@ const firebaseConfig = {
       });
     }
 
+    function saveDraftSoon() {
+      localStorage.setItem("kir-items", JSON.stringify(state.items));
+      localStorage.setItem("kir-storeTrips", JSON.stringify(state.storeTrips));
+
+      if (saveDebounceTimer) clearTimeout(saveDebounceTimer);
+      saveDebounceTimer = setTimeout(() => {
+        saveDebounceTimer = null;
+        save();
+      }, 900);
+    }
+
     function initFirebaseSync() {
       if (!firebaseConfigIsFilled()) {
         setSyncStatus("Sync: this browser only. Add Firebase config to enable live shared syncing.", "local");
         return;
       }
 
-      setSyncStatus("Sync: connecting to Firebase...", "local");
-
       try {
-        if (!firebase.apps.length) {
-          firebase.initializeApp(firebaseConfig);
-        }
-
+        firebase.initializeApp(firebaseConfig);
         db = firebase.firestore();
         appDocRef = db.collection(FIREBASE_COLLECTION).doc(FIREBASE_DOC_ID);
 
-        // Direct connectivity test first, so we don't wait forever on the realtime listener.
-        appDocRef.set({
-          connectionTest: new Date().toISOString()
-        }, { merge: true }).then(() => {
-          setSyncStatus("Sync: Firebase write worked. Opening live listener...", "live");
-        }).catch((error) => {
-          console.error("Initial Firestore write failed:", error);
-          setSyncStatus(`Sync setup error: ${error.code || ""} ${error.message || error}`, "local");
-        });
-
-        const listenerTimeout = setTimeout(() => {
-          if (!firebaseReady) {
-            setSyncStatus("Sync timeout: Firebase connected code ran, but Firestore listener did not respond. Check Firestore Database exists, Rules are published, and Firestore API is enabled.", "local");
-          }
-        }, 8000);
-
         appDocRef.onSnapshot((doc) => {
-          clearTimeout(listenerTimeout);
-
           if (!doc.exists) {
-            firebaseReady = true;
-            setSyncStatus("Sync: creating shared grocery list...", "live");
             appDocRef.set({
               items: state.items && state.items.length ? state.items : cloneDefaultItems(),
               storeTrips: state.storeTrips || [],
               createdAt: firebase.firestore.FieldValue.serverTimestamp(),
               updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            }, { merge: true }).catch((error) => {
-              console.error("Initial Firestore document create failed:", error);
-              setSyncStatus(`Sync error creating list: ${error.code || ""} ${error.message || error}`, "local");
-            });
+            }, { merge: true });
             return;
           }
 
@@ -886,32 +870,14 @@ const firebaseConfig = {
           setSyncStatus("Sync: live shared Firebase syncing is on.", "live");
           render();
         }, (error) => {
-          clearTimeout(listenerTimeout);
           console.error("Firestore listener failed:", error);
-          setSyncStatus(`Sync listener error: ${error.code || "listener-failed"} ${error.message || "Firebase listener failed"}`, "local");
+          setSyncStatus("Sync error: Firebase listener failed. Using this browser only.", "local");
         });
       } catch (error) {
         console.error("Firebase initialization failed:", error);
-        setSyncStatus(`Sync init error: ${error.code || ""} ${error.message || error}`, "local");
+        setSyncStatus("Sync error: Firebase could not initialize. Check your config.", "local");
       }
     }
-
-    function testFirebaseWrite() {
-      if (!appDocRef) {
-        setSyncStatus("Test failed: Firebase document reference is not ready yet.", "local");
-        return;
-      }
-      appDocRef.set({
-        testPing: new Date().toISOString(),
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      }, { merge: true }).then(() => {
-        setSyncStatus("Sync test succeeded: Firebase write worked.", "live");
-      }).catch((error) => {
-        console.error("Firebase test write failed:", error);
-        setSyncStatus(`Sync test failed: ${error.code || ""} ${error.message || error}`, "local");
-      });
-    }
-
     function currency(value) {
       return `$${(Number(value) || 0).toFixed(2)}`;
     }
@@ -1116,12 +1082,12 @@ const firebaseConfig = {
     }
     function updateQty(id, value) {
       state.items = state.items.map(i => i.id === id ? {...i, quantity: value} : i);
-      save();
+      saveDraftSoon();
     }
 
     function updateItemName(id, value) {
       state.items = state.items.map(i => i.id === id ? {...i, name: value} : i);
-      save();
+      saveDraftSoon();
     }
 
     function updateItemCategory(id, value) {
@@ -1149,6 +1115,7 @@ const firebaseConfig = {
           <div>
             <div class="eyebrow">〰️ Vacation house grocery coordinator</div>
             <h1>🎣 Keepin' It Reel - Grocery List</h1>
+            <div id="sync-status" class="sync-status local" style="display:none;"></div>
           </div>
         </header>
 
@@ -1272,8 +1239,8 @@ const firebaseConfig = {
                   <div class="grocery-row ${claimed ? "claimed-row" : "unclaimed-row"}">
                     <button class="mini-action remove" onclick="openRemoveItemWarning('${item.id}')" title="Remove item">−</button>
                     <div class="status-cell">${claimed ? `<button class="badge claim-btn ${familyBadge(item.assignedTo)}" onclick="toggleClaim('${item.id}')" title="Click to unclaim">${escapeHtml(item.assignedTo)}</button>` : `<button class="badge claim-btn badge-unclaimed" onclick="toggleClaim('${item.id}')" title="Claim this item">Claim</button>`}</div>
-                    <input class="item-name-input" value="${escapeHtml(item.name)}" placeholder="Item" oninput="updateItemName('${item.id}', this.value)" />
-                    <input value="${escapeHtml(item.quantity)}" placeholder="—" oninput="updateQty('${item.id}', this.value)" />
+                    <input class="item-name-input" value="${escapeHtml(item.name)}" placeholder="Item" oninput="updateItemName('${item.id}', this.value)" onblur="save()" />
+                    <input value="${escapeHtml(item.quantity)}" placeholder="—" oninput="updateQty('${item.id}', this.value)" onblur="save()" />
                     <select onchange="updateItemCategory('${item.id}', this.value)">${optionList(categories, item.category)}</select>
                     <div>${escapeHtml(item.store || "—")}</div>
                   </div>
