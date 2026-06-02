@@ -831,19 +831,29 @@ const firebaseConfig = {
         return;
       }
 
+      setSyncStatus("Sync: connecting to Firebase...", "local");
+
       try {
-        firebase.initializeApp(firebaseConfig);
+        if (!firebase.apps.length) {
+          firebase.initializeApp(firebaseConfig);
+        }
+
         db = firebase.firestore();
         appDocRef = db.collection(FIREBASE_COLLECTION).doc(FIREBASE_DOC_ID);
 
         appDocRef.onSnapshot((doc) => {
           if (!doc.exists) {
+            firebaseReady = true;
+            setSyncStatus("Sync: creating shared grocery list...", "live");
             appDocRef.set({
               items: state.items && state.items.length ? state.items : cloneDefaultItems(),
               storeTrips: state.storeTrips || [],
               createdAt: firebase.firestore.FieldValue.serverTimestamp(),
               updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            }, { merge: true });
+            }, { merge: true }).catch((error) => {
+              console.error("Initial Firestore document create failed:", error);
+              setSyncStatus(`Sync error creating list: ${error.code || ""} ${error.message || error}`, "local");
+            });
             return;
           }
 
@@ -859,13 +869,30 @@ const firebaseConfig = {
           render();
         }, (error) => {
           console.error("Firestore listener failed:", error);
-          setSyncStatus("Sync error: Firebase listener failed. Using this browser only.", "local");
+          setSyncStatus(`Sync error: ${error.code || "listener-failed"} ${error.message || "Firebase listener failed"}`, "local");
         });
       } catch (error) {
         console.error("Firebase initialization failed:", error);
-        setSyncStatus("Sync error: Firebase could not initialize. Check your config.", "local");
+        setSyncStatus(`Sync error initializing Firebase: ${error.code || ""} ${error.message || error}`, "local");
       }
     }
+
+    function testFirebaseWrite() {
+      if (!appDocRef) {
+        setSyncStatus("Test failed: Firebase document reference is not ready yet.", "local");
+        return;
+      }
+      appDocRef.set({
+        testPing: new Date().toISOString(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true }).then(() => {
+        setSyncStatus("Sync test succeeded: Firebase write worked.", "live");
+      }).catch((error) => {
+        console.error("Firebase test write failed:", error);
+        setSyncStatus(`Sync test failed: ${error.code || ""} ${error.message || error}`, "local");
+      });
+    }
+
     function currency(value) {
       return `$${(Number(value) || 0).toFixed(2)}`;
     }
@@ -1103,7 +1130,8 @@ const firebaseConfig = {
           <div>
             <div class="eyebrow">〰️ Vacation house grocery coordinator</div>
             <h1>🎣 Keepin' It Reel - Grocery List</h1>
-            <div id="sync-status" class="sync-status local">Sync: this browser only. Add Firebase config to enable live shared syncing.</div>
+            <div id="sync-status" class="sync-status local">Sync: connecting...</div>
+            <button class="reset" onclick="testFirebaseWrite()">Test Firebase sync</button>
           </div>
         </header>
 
