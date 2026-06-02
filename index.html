@@ -841,7 +841,25 @@ const firebaseConfig = {
         db = firebase.firestore();
         appDocRef = db.collection(FIREBASE_COLLECTION).doc(FIREBASE_DOC_ID);
 
+        // Direct connectivity test first, so we don't wait forever on the realtime listener.
+        appDocRef.set({
+          connectionTest: new Date().toISOString()
+        }, { merge: true }).then(() => {
+          setSyncStatus("Sync: Firebase write worked. Opening live listener...", "live");
+        }).catch((error) => {
+          console.error("Initial Firestore write failed:", error);
+          setSyncStatus(`Sync setup error: ${error.code || ""} ${error.message || error}`, "local");
+        });
+
+        const listenerTimeout = setTimeout(() => {
+          if (!firebaseReady) {
+            setSyncStatus("Sync timeout: Firebase connected code ran, but Firestore listener did not respond. Check Firestore Database exists, Rules are published, and Firestore API is enabled.", "local");
+          }
+        }, 8000);
+
         appDocRef.onSnapshot((doc) => {
+          clearTimeout(listenerTimeout);
+
           if (!doc.exists) {
             firebaseReady = true;
             setSyncStatus("Sync: creating shared grocery list...", "live");
@@ -868,12 +886,13 @@ const firebaseConfig = {
           setSyncStatus("Sync: live shared Firebase syncing is on.", "live");
           render();
         }, (error) => {
+          clearTimeout(listenerTimeout);
           console.error("Firestore listener failed:", error);
-          setSyncStatus(`Sync error: ${error.code || "listener-failed"} ${error.message || "Firebase listener failed"}`, "local");
+          setSyncStatus(`Sync listener error: ${error.code || "listener-failed"} ${error.message || "Firebase listener failed"}`, "local");
         });
       } catch (error) {
         console.error("Firebase initialization failed:", error);
-        setSyncStatus(`Sync error initializing Firebase: ${error.code || ""} ${error.message || error}`, "local");
+        setSyncStatus(`Sync init error: ${error.code || ""} ${error.message || error}`, "local");
       }
     }
 
@@ -1131,7 +1150,7 @@ const firebaseConfig = {
             <div class="eyebrow">〰️ Vacation house grocery coordinator</div>
             <h1>🎣 Keepin' It Reel - Grocery List</h1>
             <div id="sync-status" class="sync-status local">Sync: connecting...</div>
-            <button class="reset" onclick="testFirebaseWrite()">Test Firebase sync</button>
+            <button class="reset" onclick="testFirebaseWrite()">Run Firebase test</button>
           </div>
         </header>
 
